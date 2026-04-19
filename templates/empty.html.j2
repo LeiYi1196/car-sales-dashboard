@@ -1,0 +1,32 @@
+{% extends "base.html.j2" %}
+{% block body %}
+  <div class="header">
+    <div>
+      <h1>Auto Sales Dashboard</h1>
+      <div class="subtitle">No data yet</div>
+    </div>
+    {% if show_upload %}
+    <a class="btn" href="/upload">Upload data →</a>
+    {% endif %}
+  </div>
+
+  <div class="empty-state">
+    <h2>Welcome!</h2>
+    <p>This dashboard is empty. To get started:</p>
+    <ol>
+      {% if show_upload %}
+      <li>Click <a href="/upload">Upload data</a> and pick a CSV / XLSX file.</li>
+      <li>Confirm the column mapping on the preview page.</li>
+      <li>Come back here to explore filters and trends.</li>
+      {% else %}
+      <li>Ask the site administrator to upload the initial dataset.</li>
+      <li>Once data is loaded, you'll see country cards, KPIs, and time filters here.</li>
+      {% endif %}
+    </ol>
+    {% if not show_upload %}
+    <p class="filter-hint" style="margin-top:16px">
+      Admin? <a href="/admin/login?next=/upload">Log in →</a>
+    </p>
+    {% endif %}
+  </div>
+{% endblock %}

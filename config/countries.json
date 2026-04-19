@@ -1,0 +1,47 @@
+{
+  "default": {
+    "header_row": "auto",
+    "date_format": null,
+    "currency": "USD",
+    "display_name": null,
+    "column_map": {
+      "date":     ["ORDERDATE", "Order Date", "OrderDate", "Date", "日期", "销售日期"],
+      "country":  ["COUNTRY", "Country", "国家"],
+      "sales":    ["SALES", "Sales", "Sales Amount", "Amount", "Revenue", "销售额", "销售金额"],
+      "quantity": ["QUANTITYORDERED", "Quantity Ordered", "Qty", "Quantity", "Units", "数量", "销量"],
+      "model":    ["PRODUCTLINE", "Product Line", "ProductLine", "Model", "Product", "车型", "车型名称"]
+    }
+  },
+  "countries": {
+    "USA":       { "display_name": "United States", "currency": "USD", "date_format": "%d/%m/%Y" },
+    "UK":        { "display_name": "United Kingdom", "currency": "GBP", "date_format": "%d/%m/%Y" },
+    "France":    { "display_name": "France",         "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Spain":     { "display_name": "Spain",          "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Germany":   { "display_name": "Germany",        "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Italy":     { "display_name": "Italy",          "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Norway":    { "display_name": "Norway",         "currency": "NOK", "date_format": "%d/%m/%Y" },
+    "Finland":   { "display_name": "Finland",        "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Sweden":    { "display_name": "Sweden",         "currency": "SEK", "date_format": "%d/%m/%Y" },
+    "Denmark":   { "display_name": "Denmark",        "currency": "DKK", "date_format": "%d/%m/%Y" },
+    "Switzerland": { "display_name": "Switzerland",  "currency": "CHF", "date_format": "%d/%m/%Y" },
+    "Austria":   { "display_name": "Austria",        "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Belgium":   { "display_name": "Belgium",        "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Ireland":   { "display_name": "Ireland",        "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Portugal":  { "display_name": "Portugal",       "currency": "EUR", "date_format": "%d/%m/%Y" },
+    "Japan":     { "display_name": "Japan",          "currency": "JPY", "date_format": "%d/%m/%Y" },
+    "Singapore": { "display_name": "Singapore",      "currency": "SGD", "date_format": "%d/%m/%Y" },
+    "Philippines": { "display_name": "Philippines",  "currency": "PHP", "date_format": "%d/%m/%Y" },
+    "Australia": { "display_name": "Australia",      "currency": "AUD", "date_format": "%d/%m/%Y" },
+    "Canada":    { "display_name": "Canada",         "currency": "CAD", "date_format": "%d/%m/%Y" },
+    "China": {
+      "display_name": "中国",
+      "currency": "CNY",
+      "column_map": {
+        "date":  ["销售日期", "日期"],
+        "sales": ["销售金额", "金额", "销售额"],
+        "quantity": ["销量", "数量"],
+        "model": ["车型名称", "车型"]
+      }
+    }
+  }
+}

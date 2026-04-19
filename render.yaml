@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: car-sales-dashboard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: ADMIN_USERNAME
+        value: Kirby
+      - key: ADMIN_PASSWORD
+        sync: false          # set manually in Render Dashboard → Environment (strong password)
+      - key: SESSION_SECRET
+        generateValue: true  # random per-deploy, used to HMAC-sign the session cookie
+      - key: DB_PATH
+        value: /var/data/app.db
+      - key: LOG_LEVEL
+        value: INFO
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1

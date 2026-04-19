@@ -1,0 +1,39 @@
+{# Period trend table with MoM/QoQ/YoY deltas. Caller passes `trend` DataFrame-as-records and `granularity`. #}
+{% if trend_rows %}
+<div class="chart-card">
+  <div class="card-header">
+    <h2>Period Detail</h2>
+    <div class="card-sub">{{ pop_label(granularity) }} and YoY % change per period</div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th class="num">Sales</th>
+          <th class="num">Units</th>
+          <th class="num">{{ pop_label(granularity) }}</th>
+          {% if granularity != 'Y' %}<th class="num">YoY</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in trend_rows %}
+        <tr>
+          <td>{{ row.period_label }}</td>
+          <td class="num">{{ fmt_money(row.sales) }}</td>
+          <td class="num">{{ fmt_int(row.quantity) }}</td>
+          <td class="num {% if row.pop_pct is not none and row.pop_pct == row.pop_pct %}{% if row.pop_pct >= 0 %}delta-up{% else %}delta-down{% endif %}{% endif %}">
+            {{ fmt_pct(row.pop_pct) }}
+          </td>
+          {% if granularity != 'Y' %}
+          <td class="num {% if row.yoy_pct is not none and row.yoy_pct == row.yoy_pct %}{% if row.yoy_pct >= 0 %}delta-up{% else %}delta-down{% endif %}{% endif %}">
+            {{ fmt_pct(row.yoy_pct) }}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}

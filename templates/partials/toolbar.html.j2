@@ -1,0 +1,92 @@
+{# Compact toolbar: filters on the left, action buttons on the right, stats chip below.
+   `scope` = "overview" | "country-<slug>"  (used for PNG filename) #}
+{% set fs = filter_state %}
+{% set ds = data_stats or {} %}
+<div class="toolbar">
+  <form
+    class="filter-bar"
+    hx-get="{{ form_action or '/' }}"
+    hx-target="#dashboard-body"
+    hx-swap="innerHTML"
+    hx-push-url="true"
+    hx-include="this"
+    hx-trigger="change, submit"
+  >
+    <div class="filter-group">
+      <label class="filter-label">Granularity</label>
+      <div class="pills">
+        {% for g, label in [('M','Month'), ('Q','Quarter'), ('Y','Year')] %}
+        <label class="pill {% if fs.granularity == g %}pill-active{% endif %}">
+          <input type="radio" name="granularity" value="{{ g }}"
+                 {% if fs.granularity == g %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label" for="filter-start">From</label>
+      <input id="filter-start" type="date" name="start"
+             value="{{ fs.start.date().isoformat() if fs.start is not none else '' }}">
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label" for="filter-end">To</label>
+      <input id="filter-end" type="date" name="end"
+             value="{{ fs.end.date().isoformat() if fs.end is not none else '' }}">
+    </div>
+
+    {% if available_countries %}
+    <div class="filter-group filter-countries-group">
+      <label class="filter-label" for="filter-countries">Countries</label>
+      <select id="filter-countries" name="countries" multiple size="1" class="filter-countries">
+        {% for c in available_countries %}
+        <option value="{{ c.country }}" {% if c.country in fs.countries %}selected{% endif %}>
+          {{ c.display_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <button type="button" class="btn btn-ghost btn-small"
+            onclick="const f=this.form; for (const el of f.elements) { if (el.type==='date') el.value=''; if (el.tagName==='SELECT') [...el.options].forEach(o=>o.selected=false); } f.querySelector('[value=M]').checked=true; htmx.trigger(f, 'submit');">
+      Reset
+    </button>
+    <noscript><button type="submit" class="btn">Apply</button></noscript>
+  </form>
+
+  <div class="toolbar-actions">
+    <button type="button" class="btn btn-small" onclick="exportPng('{{ scope or 'overview' }}')" title="Download the current view as a PNG image">
+      Export PNG
+    </button>
+    <button type="button" class="btn btn-small" onclick="exportPdf()" title="Save the current view as a PDF via your browser's print dialog">
+      Export PDF
+    </button>
+    <button type="button" class="btn btn-small" onclick="copyShareLink()" title="Copy the current URL with all filters applied">
+      Copy link
+    </button>
+    {% if show_upload %}
+    <a class="btn btn-primary btn-small" href="/upload">Upload</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if ds and ds.get('rows', 0) > 0 %}
+<div class="stats-chip" role="status">
+  <span>{{ fmt_int(ds.rows) }} rows</span>
+  <span class="chip-sep">·</span>
+  <span>{{ ds.country_count or 0 }} countries</span>
+  {% if ds.latest_uploaded_at %}
+  <span class="chip-sep">·</span>
+  <span>Updated {{ ds.latest_uploaded_at.strftime('%Y-%m-%d') }}</span>
+  {% endif %}
+  {% if admin_username %}
+  <span class="chip-sep">·</span>
+  <span class="chip-admin">Admin: {{ admin_username }}</span>
+  {% endif %}
+</div>
+{% endif %}
+
+<div id="toast" class="toast" aria-live="polite"></div>

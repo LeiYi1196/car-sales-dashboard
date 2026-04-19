@@ -1,0 +1,43 @@
+{% if country.order_count == 0 %}
+  <div class="empty-state">
+    <h2>No data in the selected range</h2>
+    <p>Widen the date range or reset the filters.</p>
+  </div>
+{% else %}
+
+{% set kpi = {
+  'total_sales': country.total_sales,
+  'total_quantity': country.total_quantity,
+  'order_count': country.order_count,
+  'count_label': 'Models',
+  'count_value': country.model_count,
+  'pop_pct': (country.trend['pop_pct'].iloc[-1] if not country.trend.empty else none),
+  'yoy_pct': (country.trend['yoy_pct'].iloc[-1] if not country.trend.empty else none),
+  'granularity': country.granularity,
+} %}
+{% include "partials/kpi_cards.html.j2" %}
+
+<div class="chart-card">
+  <div class="card-header">
+    <h2>{{ pop_label(country.granularity) }} Trend</h2>
+    <div class="card-sub">Sales and units at {{ pop_label(country.granularity) }} granularity</div>
+  </div>
+  {{ trend_chart | safe }}
+</div>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>Top Models by Sales</h2>
+    {{ top_models_chart | safe }}
+  </div>
+  <div class="chart-card">
+    <h2>Model Share</h2>
+    {{ model_share_chart | safe }}
+  </div>
+</div>
+
+{% with trend_rows=country.trend.to_dict(orient='records'), granularity=country.granularity %}
+  {% include "partials/trend_table.html.j2" %}
+{% endwith %}
+
+{% endif %}

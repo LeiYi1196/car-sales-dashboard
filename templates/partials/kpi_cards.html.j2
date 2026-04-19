@@ -1,0 +1,38 @@
+{# KPI cards with period-over-period + YoY deltas.
+   Caller passes `kpi` dict with keys: total_sales, total_quantity, order_count,
+   count_label ("Countries"|"Models"), count_value, pop_pct, yoy_pct, granularity. #}
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="label">Total Sales</div>
+    <div class="value">{{ fmt_money(kpi.total_sales) }}</div>
+    {% if kpi.pop_pct is not none or kpi.yoy_pct is not none %}
+    <div class="kpi-deltas">
+      {% if kpi.pop_pct is not none %}
+      <span class="delta {% if kpi.pop_pct >= 0 %}delta-up{% else %}delta-down{% endif %}">
+        {{ pop_label(kpi.granularity) }} {{ fmt_pct(kpi.pop_pct) }}
+      </span>
+      {% endif %}
+      {% if kpi.yoy_pct is not none and kpi.granularity != 'Y' %}
+      <span class="delta {% if kpi.yoy_pct >= 0 %}delta-up{% else %}delta-down{% endif %}">
+        YoY {{ fmt_pct(kpi.yoy_pct) }}
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kpi">
+    <div class="label">Units Sold</div>
+    <div class="value">{{ fmt_int(kpi.total_quantity) }}</div>
+  </div>
+
+  <div class="kpi">
+    <div class="label">Orders</div>
+    <div class="value">{{ fmt_int(kpi.order_count) }}</div>
+  </div>
+
+  <div class="kpi">
+    <div class="label">{{ kpi.count_label }}</div>
+    <div class="value">{{ kpi.count_value }}</div>
+  </div>
+</div>

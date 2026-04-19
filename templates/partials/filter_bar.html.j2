@@ -1,0 +1,59 @@
+{# Filter bar: granularity pills + date range + country multi-select.
+   Submits via HTMX into #dashboard-body, pushing the URL. #}
+{% set fs = filter_state %}
+<form
+  class="filter-bar"
+  hx-get="{{ form_action or '/' }}"
+  hx-target="#dashboard-body"
+  hx-swap="innerHTML"
+  hx-push-url="true"
+  hx-include="this"
+  hx-trigger="change, submit"
+>
+  <div class="filter-group">
+    <label class="filter-label">Granularity</label>
+    <div class="pills">
+      {% for g, label in [('M','Month'), ('Q','Quarter'), ('Y','Year')] %}
+      <label class="pill {% if fs.granularity == g %}pill-active{% endif %}">
+        <input type="radio" name="granularity" value="{{ g }}"
+               {% if fs.granularity == g %}checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label class="filter-label" for="filter-start">From</label>
+    <input id="filter-start" type="date" name="start"
+           value="{{ fs.start.date().isoformat() if fs.start is not none else '' }}">
+  </div>
+
+  <div class="filter-group">
+    <label class="filter-label" for="filter-end">To</label>
+    <input id="filter-end" type="date" name="end"
+           value="{{ fs.end.date().isoformat() if fs.end is not none else '' }}">
+  </div>
+
+  {% if available_countries %}
+  <div class="filter-group filter-countries">
+    <label class="filter-label" for="filter-countries">Countries</label>
+    <select id="filter-countries" name="countries" multiple size="1">
+      {% for c in available_countries %}
+      <option value="{{ c.country }}" {% if c.country in fs.countries %}selected{% endif %}>
+        {{ c.display_name }}
+      </option>
+      {% endfor %}
+    </select>
+    <div class="filter-hint">Ctrl/Cmd-click for multiple</div>
+  </div>
+  {% endif %}
+
+  <div class="filter-actions">
+    <button type="button" class="btn btn-ghost"
+            onclick="const f=this.form; for (const el of f.elements) { if (el.type==='date') el.value=''; if (el.tagName==='SELECT') [...el.options].forEach(o=>o.selected=false); } f.querySelector('[value=M]').checked=true; htmx.trigger(f, 'submit');">
+      Reset
+    </button>
+    <noscript><button type="submit" class="btn">Apply</button></noscript>
+  </div>
+</form>

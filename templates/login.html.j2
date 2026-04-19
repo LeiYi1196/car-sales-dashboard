@@ -1,0 +1,18 @@
+{% extends "base.html.j2" %}
+{% block body %}
+  <div class="header"><h1>Admin login</h1></div>
+  <form method="post" action="/admin/login" class="login-form">
+    {% if error %}<p class="error">✗ {{ error }}</p>{% endif %}
+    <label class="filter-label" for="username">Username</label>
+    <input id="username" name="username" type="text" autocomplete="username" autofocus required>
+    <label class="filter-label" for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <input type="hidden" name="next" value="{{ next_url or '/upload' }}">
+    <button type="submit" class="btn btn-primary">Log in</button>
+    <p class="filter-hint">
+      Defaults: <code>Kirby</code> / <code>Kirby123</code>.
+      Override by setting <code>ADMIN_USERNAME</code> / <code>ADMIN_PASSWORD</code> env vars
+      (on Render: Dashboard → Environment).
+    </p>
+  </form>
+{% endblock %}

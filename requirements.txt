@@ -1,0 +1,12 @@
+pandas>=2.0
+openpyxl>=3.1
+plotly>=5.18
+jinja2>=3.1
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+sqlalchemy>=2.0
+httpx>=0.27
+pytest>=8.0
+# Optional — only needed for CLI PNG/PDF export. Install with: pip install playwright && playwright install chromium
+playwright>=1.40

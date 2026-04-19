@@ -1,0 +1,224 @@
+{% extends "base.html.j2" %}
+{% block body %}
+  <a class="back-link" href="/">← Back to dashboard</a>
+  <div class="header">
+    <div>
+      <h1>Upload data</h1>
+      <div class="subtitle">
+        {{ fmt_int(stats.rows) }} rows in DB · {{ stats.batches }} batches
+        {% if stats.min_date and stats.max_date %}
+        · {{ stats.min_date }} – {{ stats.max_date }}
+        {% endif %}
+      </div>
+    </div>
+    <form action="/admin/logout" method="post" style="margin:0">
+      <button class="btn btn-ghost" type="submit">Log out</button>
+    </form>
+  </div>
+
+  <div class="upload-wrap">
+    <div class="upload-step" id="step-pick">
+      <h2>1. Pick a CSV or XLSX file</h2>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls">
+      <button class="btn" id="btn-preview" disabled>Preview mapping →</button>
+    </div>
+
+    <div class="upload-step hidden" id="step-map">
+      <h2>2. Review column mapping</h2>
+      <p class="card-sub">
+        Auto-detected — change any row where the matched column is wrong.
+        <span id="countries-summary"></span>
+      </p>
+      <div id="mapping-tables"></div>
+      <h3>Preview (first 5 rows)</h3>
+      <div class="table-wrap"><table class="data-table" id="preview-table"></table></div>
+      <div class="upload-actions">
+        <button class="btn btn-ghost" id="btn-back">← Back</button>
+        <button class="btn" id="btn-commit">Commit to database</button>
+      </div>
+    </div>
+
+    <div class="upload-step hidden" id="step-done">
+      <h2>3. Done</h2>
+      <div id="commit-result" class="commit-result"></div>
+      <a class="btn" href="/">View dashboard →</a>
+    </div>
+  </div>
+
+  {% if batches %}
+  <div class="chart-card">
+    <h2>Recent uploads</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>ID</th><th>File</th><th class="num">Rows</th><th>Uploaded</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for b in batches %}
+          <tr>
+            <td>{{ b.id }}</td>
+            <td>{{ b.filename }}</td>
+            <td class="num">{{ fmt_int(b.row_count) }}</td>
+            <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              <form method="post" action="/admin/batches/{{ b.id }}/delete" style="margin:0">
+                <button class="btn btn-ghost btn-small" onclick="return confirm('Delete batch {{ b.id }} and all its rows?')">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+<script>
+(function(){
+  const fileInput = document.getElementById('file-input');
+  const btnPreview = document.getElementById('btn-preview');
+  const btnBack = document.getElementById('btn-back');
+  const btnCommit = document.getElementById('btn-commit');
+  const steps = {
+    pick: document.getElementById('step-pick'),
+    map:  document.getElementById('step-map'),
+    done: document.getElementById('step-done'),
+  };
+  let lastDetection = null;
+
+  function show(which) {
+    for (const k in steps) steps[k].classList.toggle('hidden', k !== which);
+  }
+
+  fileInput.addEventListener('change', () => {
+    btnPreview.disabled = !fileInput.files.length;
+  });
+
+  btnPreview.addEventListener('click', async () => {
+    if (!fileInput.files.length) return;
+    btnPreview.disabled = true;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const r = await fetch('/upload/preview', {method: 'POST', body: fd});
+      if (!r.ok) throw new Error('Preview failed: ' + r.status + ' ' + await r.text());
+      lastDetection = await r.json();
+      renderDetection(lastDetection);
+      show('map');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btnPreview.disabled = false;
+    }
+  });
+
+  btnBack.addEventListener('click', () => show('pick'));
+
+  btnCommit.addEventListener('click', async () => {
+    if (!fileInput.files.length || !lastDetection) return;
+    btnCommit.disabled = true;
+    const mapping = collectMapping();
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('mapping', JSON.stringify(mapping));
+    try {
+      const r = await fetch('/upload/commit', {method: 'POST', body: fd});
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || ('commit failed: ' + r.status));
+      document.getElementById('commit-result').innerHTML =
+        '<p>✓ Committed batch #' + j.batch_id + ': <b>' + j.inserted + '</b> rows inserted, ' +
+        j.skipped_duplicates + ' duplicates skipped (of ' + j.total_rows + ' total).</p>';
+      show('done');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btnCommit.disabled = false;
+    }
+  });
+
+  function renderDetection(d) {
+    const summaryEl = document.getElementById('countries-summary');
+    summaryEl.textContent = d.countries_found.length
+      ? ' · Found ' + d.countries_found.length + ' countries (column: ' + d.country_column + ')'
+      : ' · No country column detected — treating as single bucket';
+
+    const host = document.getElementById('mapping-tables');
+    host.innerHTML = '';
+    const fields = ['date','sales','quantity','model'];
+    const countryKeys = Object.keys(d.per_country);
+    for (const ck of countryKeys) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mapping-country';
+      const title = ck === '__all__' ? 'All rows' : ck;
+      wrap.innerHTML = '<h3>' + title + '</h3>';
+      const tbl = document.createElement('table');
+      tbl.className = 'data-table mapping-table';
+      tbl.innerHTML = '<thead><tr><th>Field</th><th>Source column</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      for (const f of fields) {
+        const info = d.per_country[ck][f] || {matched: null, candidates: []};
+        const row = document.createElement('tr');
+        row.innerHTML = '<td><b>' + f + '</b>' + (f==='date'||f==='sales'?' <span class="req">*</span>':'') + '</td>';
+        const cell = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.dataset.country = ck;
+        sel.dataset.field = f;
+        const blank = document.createElement('option');
+        blank.value = ''; blank.textContent = '— (use config default)';
+        sel.appendChild(blank);
+        for (const col of d.columns) {
+          const opt = document.createElement('option');
+          opt.value = col; opt.textContent = col;
+          if (col === info.matched) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        cell.appendChild(sel);
+        if (info.candidates && info.candidates.length) {
+          const hint = document.createElement('div');
+          hint.className = 'hint';
+          hint.textContent = 'Suggestions: ' + info.candidates.slice(0,5).join(', ');
+          cell.appendChild(hint);
+        }
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      }
+      tbl.appendChild(tbody);
+      wrap.appendChild(tbl);
+      host.appendChild(wrap);
+    }
+
+    // Preview table
+    const pt = document.getElementById('preview-table');
+    pt.innerHTML = '';
+    if (d.preview && d.preview.length) {
+      const cols = Object.keys(d.preview[0]);
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      cols.forEach(c => { const th = document.createElement('th'); th.textContent = c; trh.appendChild(th); });
+      thead.appendChild(trh); pt.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      for (const row of d.preview) {
+        const tr = document.createElement('tr');
+        cols.forEach(c => { const td = document.createElement('td'); td.textContent = row[c] == null ? '' : row[c]; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      }
+      pt.appendChild(tbody);
+    }
+  }
+
+  function collectMapping() {
+    const override = {per_country: {}};
+    document.querySelectorAll('#mapping-tables select').forEach(sel => {
+      const ck = sel.dataset.country;
+      const field = sel.dataset.field;
+      if (!override.per_country[ck]) override.per_country[ck] = {};
+      if (sel.value) override.per_country[ck][field] = sel.value;
+    });
+    if (lastDetection && lastDetection.country_column) {
+      override.country_column = lastDetection.country_column;
+    }
+    return override;
+  }
+})();
+</script>
+{% endblock %}

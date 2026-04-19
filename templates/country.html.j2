@@ -1,0 +1,19 @@
+{% if body_only %}{% include "_country_body.html.j2" %}{% else %}{% extends "base.html.j2" %}
+{% block body %}
+  <a class="back-link" href="/{% if query_string %}?{{ query_string }}{% endif %}">← Back to overview</a>
+  <div class="header">
+    <div>
+      <h1>{{ country.display_name }}</h1>
+      <div class="subtitle">{{ country.country }} · {{ country.currency }} · {{ date_range }}</div>
+    </div>
+  </div>
+
+  {% with form_action="/country/" ~ country.slug, scope="country-" ~ country.slug %}
+    {% include "partials/toolbar.html.j2" %}
+  {% endwith %}
+
+  <div id="dashboard-body">
+    {% include "_country_body.html.j2" %}
+  </div>
+{% endblock %}
+{% endif %}

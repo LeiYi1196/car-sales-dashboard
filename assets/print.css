@@ -1,0 +1,24 @@
+@page { size: A4; margin: 12mm; }
+
+body { background: #fff; }
+
+.container { max-width: none; padding: 0; }
+
+/* Hide everything that isn't part of the snapshot. */
+.toolbar-actions,
+.stats-chip,
+.back-link,
+.header-actions,
+.filter-bar,
+.export-links,
+.toast {
+  display: none !important;
+}
+
+/* Flatten shadows; keep charts/tables whole across page breaks. */
+.chart-card, .country-card, .kpi, .table-wrap {
+  box-shadow: none !important;
+  break-inside: avoid;
+}
+.chart-row { break-inside: avoid; }
+.country-card:hover { transform: none; }
