@@ -12,11 +12,7 @@ services:
         sync: false          # set manually in Render Dashboard → Environment (strong password)
       - key: SESSION_SECRET
         generateValue: true  # random per-deploy, used to HMAC-sign the session cookie
-      - key: DB_PATH
-        value: /var/data/app.db
+      - key: DATABASE_URL
+        sync: false          # paste Neon/Supabase Postgres connection string in Render Dashboard
       - key: LOG_LEVEL
         value: INFO
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1

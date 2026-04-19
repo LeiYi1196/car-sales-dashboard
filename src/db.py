@@ -31,6 +31,9 @@ DEFAULT_DB_PATH = ROOT / "data" / "app.db"
 def _database_url() -> str:
     explicit = os.environ.get("DATABASE_URL")
     if explicit:
+        # Render / Heroku style `postgres://` URLs need the modern scheme.
+        if explicit.startswith("postgres://"):
+            explicit = explicit.replace("postgres://", "postgresql://", 1)
         return explicit
     path = Path(os.environ.get("DB_PATH", str(DEFAULT_DB_PATH)))
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,14 +170,20 @@ def insert_batch(
             }
         )
 
-    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-
     dialect = session.get_bind().dialect.name
+    conflict_cols = ["date", "country", "model", "sales", "quantity", "source_file"]
     if dialect == "sqlite":
-        stmt = sqlite_insert(Sale).values(records)
-        stmt = stmt.on_conflict_do_nothing(index_elements=[
-            "date", "country", "model", "sales", "quantity", "source_file"
-        ])
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+        stmt = sqlite_insert(Sale).values(records).on_conflict_do_nothing(
+            index_elements=conflict_cols
+        )
+        result = session.execute(stmt)
+        inserted = result.rowcount if result.rowcount is not None else 0
+    elif dialect == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        stmt = pg_insert(Sale).values(records).on_conflict_do_nothing(
+            index_elements=conflict_cols
+        )
         result = session.execute(stmt)
         inserted = result.rowcount if result.rowcount is not None else 0
     else:
