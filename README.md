@@ -9,6 +9,37 @@ Both modes read the same `config/countries.json` and the same normalisation logi
 
 ---
 
+## Quick demo
+
+**Web dashboard** — upload a CSV, get interactive charts, MoM/YoY KPIs, per-country drill-down, PNG/PDF export:
+
+```bash
+pip install -r requirements.txt
+uvicorn src.app:app --reload
+# open http://localhost:8000
+```
+
+**Natural-language query** (`POST /chat`) — LLM dispatches Python tools, never generates SQL:
+
+```bash
+curl -s -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Which country had the highest sales growth in Q2?"}' | python3 -m json.tool
+```
+
+```json
+{
+  "answer": "Germany recorded the strongest Q2 growth at +18.4% QoQ, driven by Model Y
+             which accounted for 62% of units sold. China followed at +11.2% QoQ."
+}
+```
+
+The LLM picks one of 5 typed Python tools (`get_global_summary`, `get_country_detail`,
+`compare_countries`, `get_top_models`, `get_trend`), calls it, and interprets structured
+data — no raw SQL, no injection risk. 34/34 tests pass; chat tests run fully offline.
+
+---
+
 ## Contents
 
 1. [Installation](#1-installation)
