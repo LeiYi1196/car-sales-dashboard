@@ -53,9 +53,11 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from .analyzer import country_slug, summarize_all, summarize_country
+from .chat import answer as chat_answer
 from .db import (
     Sale,
     UploadBatch,
@@ -489,3 +491,27 @@ def app_js():
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Natural-language chat (Claude tool-use)
+# ──────────────────────────────────────────────────────────────────────────
+
+class _ChatRequest(BaseModel):
+    question: str
+
+
+@app.post("/chat")
+def chat(body: _ChatRequest, session: Session = Depends(session_scope)):
+    """Answer a natural-language question about the sales data.
+
+    Requires ANTHROPIC_API_KEY in the environment. Returns plain-text / markdown.
+    """
+    if not body.question.strip():
+        raise HTTPException(status_code=400, detail="question must not be empty")
+    try:
+        reply = chat_answer(body.question.strip(), session)
+    except RuntimeError as exc:
+        # Missing API key — return 503 so callers know it's a config issue, not a bug.
+        raise HTTPException(status_code=503, detail=str(exc))
+    return {"answer": reply}

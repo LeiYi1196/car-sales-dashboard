@@ -39,10 +39,12 @@ playwright install chromium       # 约 90MB
 
 核心依赖：`pandas`、`openpyxl`（读 xlsx）、`plotly`、`jinja2`、`fastapi`、`sqlalchemy`、`uvicorn`。`playwright` 只给 CLI 导出 PNG/PDF 用，Web App 模式不需要。
 
+自然语言查询（`/chat`）需要额外配置 Anthropic API Key（见 [第 12 节](#12-自然语言查询-chat)）。
+
 跑测试：
 
 ```bash
-pytest tests/                     # periods 计算 + FastAPI 路由
+pytest tests/                     # periods 计算 + FastAPI 路由 + chat 工具调度（离线 mock）
 ```
 
 ---
@@ -405,4 +407,50 @@ CLI 模式：  输入文件 → loader → normalizer → analyzer → renderer 
 Web 模式：  浏览器 → app.py → loader → normalize_with_mapping → db.py（SQLite 累积）
                 ↑                                              ↓
          filter_bar + HTMX  ←  renderer  ←  analyzer  ←  load_sales_df
+
+Chat 模式： POST /chat → chat.py → Claude (tool-use) → analyzer.py 工具 → 结构化结果 → 文本回答
 ```
+
+---
+
+## 12. 自然语言查询（`/chat`）
+
+`POST /chat` 端点接受自然语言问题（中文或英文），通过 **Claude tool-use** 调度本地分析函数回答。
+
+### 配置
+
+在项目根目录建 `.env`（参考 `.env.example`）：
+
+```bash
+ANTHROPIC_API_KEY=your_key_here
+# 可选：覆盖默认模型（默认 claude-sonnet-4-6）
+# CHAT_MODEL=claude-haiku-4-5-20251001
+```
+
+### 使用示例
+
+```bash
+# 哪个国家销量最高？
+curl -s -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Which country has the highest total sales?"}' | python3 -m json.tool
+
+# Q3 2019 哪个国家跌幅最大？
+curl -s -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "在 2019 年第三季度，哪个国家的销量环比下滑最多？"}'
+```
+
+### 架构说明（面试用）
+
+LLM **不生成 SQL**。它通过 tool-use 调用以下 5 个 Python 工具，每个工具都封装了现有 `analyzer.py` 函数：
+
+| 工具 | 功能 |
+|---|---|
+| `get_global_summary` | 全局 KPI + 各国排名 |
+| `get_country_detail` | 单国月/季/年趋势 + 车型排名 |
+| `compare_countries` | 多国并排对比 + 份额 |
+| `get_top_models` | 全局或单国最畅销车型 |
+| `get_trend` | 时序趋势，可指定粒度 |
+
+这样做的好处：无 SQL 注入风险、工具结果确定性强、Claude 只需"选择正确工具 + 解读结果"而不需要生成代码。
